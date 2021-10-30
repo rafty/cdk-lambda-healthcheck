@@ -51,3 +51,26 @@ def rss_read(url, service, region) -> list:
 
     logger.debug(f'item list: {items}')
     return items
+
+
+def extract_service_error(service_list):
+    extracted_status_list = []
+    for service in service_list:
+        service_error_status_list = rss_read(service.get('rss'), service.get('service'), service.get('region'))
+
+        error_count = 0
+        for status in service_error_status_list:
+            delta = datetime.now(timezone.utc) - status['pacific_time']
+            # if delta.total_seconds() <= (((5 * 60) * 2) * 6) * 24 * 100: # for test
+            if delta.total_seconds() <= (5 * 60) * 2:  # 5 min(Polling interval) x 2
+                extracted_status_list.append(status)
+                error_count += 1
+
+        if not error_count:
+            extracted_status_list.append(
+                dict(description='Normal',
+                     pacific_time=datetime.now(timezone.utc),
+                     service=service.get('service'),
+                     region=service.get('region')))
+
+    return extracted_status_list

@@ -21,14 +21,15 @@ def message_format(status):
 
 
 def alert_service_status(topic_arn, status):
+
     message, subject = message_format(status)
 
     if status['description'] != 'Normal':
-        # TODO hoge
-        # sns.publish(
-        #     TopicArn=topic_arn,
-        #     Message=message,
-        #     Subject=subject)
-        logger.info(f'Message published: \n{message} \n Subject: {subject}')
+        sns.publish(
+            TopicArn=topic_arn,
+            Message=message,
+            Subject=subject)
+        logger.info(f'SNS Message published: \n{message} \n Subject: {subject}')
     else:
         logger.info(f'Service: {status["service"]}, Region: {status["region"]}, Status: {status["description"]}')
+
