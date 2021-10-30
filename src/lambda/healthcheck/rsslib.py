@@ -6,48 +6,48 @@ from aws_lambda_powertools import Logger
 logger = Logger(child=True)
 
 
-def pub_date_to_utc(pub_date):
-    # e.g. pub_date: Thu, 22 Aug 2019 23:40:01 PDT
-    #                Thu, 08 Mar 2012 14:11:41 PST
-    #                Thu, 08 Mar 2012 14:11:41 PCT
+def pacific_time_to_utc(pacific_time) -> datetime:
+    # e.g. pacific_time: Thu, 22 Aug 2019 23:40:01 PDT
+    #                    Thu, 08 Mar 2012 14:11:41 PST
+    #                    Thu, 08 Mar 2012 14:11:41 PCT
 
-    logger.info(f'pub_date: {pub_date}')
-    elements = pub_date.split(' ')
+    logger.debug(f'pacific_time: {pacific_time}')
+    elements = pacific_time.split(' ')
 
     if elements[-1] == 'PDT':
         _date = elements[1:-1]
         _date.append('-0700')
-        _pub_date = ' '.join(_date)
-        utc_time = datetime.strptime(_pub_date, '%d %b %Y %H:%M:%S %z'). \
+        _pacific_time = ' '.join(_date)
+        utc_time = datetime.strptime(_pacific_time, '%d %b %Y %H:%M:%S %z'). \
             astimezone(timezone.utc)
         return utc_time
     elif elements[-1] == 'PCT' or elements[-1] == 'PST':
         _date = elements[1:-1]
         _date.append('-0800')
-        _pub_date = ' '.join(_date)
-        utc_time = datetime.strptime(_pub_date, '%d %b %Y %H:%M:%S %z'). \
+        _pacific_time = ' '.join(_date)
+        utc_time = datetime.strptime(_pacific_time, '%d %b %Y %H:%M:%S %z'). \
             astimezone(timezone.utc)
         return utc_time
     else:
-        raise ValueError('datetime format error: {}'.format(pub_date))
+        raise ValueError('datetime format error: {}'.format(pacific_time))
 
 
-def rss_read(url):
+def rss_read(url, service, region) -> list:
     """
-    return: item(dict) list
+    return: list of item: dict
     item: {
-       'pub_date':
-          datetime.datetime(2019,8,23,11,18,35,tzinfo=datetime.timezone.utc),
-       'description':
-          'The majority of impaired EC2 instances and EBS...'
+       'pacific_time': datetime.datetime(2019,8,23,11,18,35,tzinfo=datetime.timezone.utc),
+       'service': 'Amazon EC2',
+       'region': 'ap-northeast-1',
+       'description':'The majority of impaired EC2 instances and EBS...'
     }
     """
     root = et.fromstring(urllib.request.urlopen(url).read())
     items = list()
     for item in root.iter('item'):
-        pub_date = pub_date_to_utc(item[2].text)
+        pacific_time = pacific_time_to_utc(item[2].text)
         description = item[4].text
-        items.append(dict(pub_date=pub_date, description=description))
+        items.append(dict(pacific_time=pacific_time, description=description, service=service, region=region))
 
-    logger.info(f'item list: {items}')
+    logger.debug(f'item list: {items}')
     return items
